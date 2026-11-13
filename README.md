@@ -39,9 +39,9 @@ There are no npm dependencies. The tests cover the demo scan, patch verification
 
 ## AI and third-party disclosure
 
-AI-assisted coding was used to create this project. The primary scan and patch need no model; the patch is deterministic. AI inference is available only through the optional local Ollama review button when the visitor has a working local model. Do not describe this version as an autonomous multi-agent auditor or claim it uses Anakin, DeployXA, AST parsing, or OSV until those integrations are added and tested.
+AI-assisted coding was used to create this project. The primary scan and patch need no model; the patch is deterministic. A local Ollama review is experimental and hidden from the default interface. It can be opened with the query parameter local-ai=1 after a model is installed and tested. Do not describe this version as an autonomous multi-agent auditor or claim it uses Anakin, DeployXA, AST parsing, or OSV until those integrations are added and tested.
 
-The interface has an **optional local Ollama review** button. Enter a model name from the locally installed Ollama service. The browser sends the selected finding and its displayed evidence to the local Ollama API and displays the response as an **unverified suggestion**. To use it from the deployed site, configure Ollama to allow that exact site origin via OLLAMA_ORIGINS. Browser security settings may still restrict access to local services. A local model on the developer's computer cannot serve every public visitor; each user must run their own Ollama instance. A hosted model endpoint would be required for shared public AI inference.
+The experimental interface has a local Ollama review button. Enter a model name from the locally installed Ollama service. The browser sends the selected finding and its displayed evidence to the local Ollama API and displays the response as an **unverified suggestion**. To use it from the deployed site, configure Ollama to allow that exact site origin via OLLAMA_ORIGINS. Browser security settings may still restrict access to local services. This integration has not been tested with a running model in this environment.
 
 ## Limits and safety
 

@@ -66,7 +66,7 @@
           </div>
           <div class="panel"><div class="head">Findings <span id="repo" class="muted">No scan yet</span></div><div id="findings" class="empty">Run the demo fixture or enter a public GitHub repository.</div></div>
           <div class="panel"><div class="head">Evidence &amp; patch <span id="selected" class="muted">Select a finding</span></div><div id="details" class="empty">Select a finding to inspect source evidence.</div></div>
-          <div class="panel"><div class="head">Local AI review <span class="muted">Optional · Ollama on your computer</span></div>
+          <div class="panel" id="local-ai" hidden><div class="head">Local AI review <span class="muted">Experimental · Ollama on your computer</span></div>
             <div class="details"><p>Ask a local model to explain the selected finding. Its answer is an unverified suggestion and never changes the repository. The evidence shown above is sent to localhost when you click.</p>
               <div class="scanbar"><input id="model" type="text" placeholder="Model name from ollama list" aria-label="Ollama model name"><button id="ai" class="secondary" type="button">Ask local model</button></div>
               <div id="ai-output" class="empty">Ollama must be running on this device. Your browser may require this site's origin in OLLAMA_ORIGINS.</div>
@@ -131,6 +131,7 @@
     }
     el('form').addEventListener('submit',(event)=>{event.preventDefault();run('github',el('url').value.trim());});
     el('demo').addEventListener('click',()=>run('sample',''));
+    if(new URL(location.href).searchParams.get('local-ai')==='1') el('local-ai').hidden=false;
     el('ai').addEventListener('click',async()=>{
       if(!selected){el('ai-output').textContent='Select a finding first.';return;}
       const model=el('model').value.trim(); if(!model){el('ai-output').textContent='Enter a model name shown by ollama list.';return;}

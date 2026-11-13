@@ -14,7 +14,7 @@ Fast prototypes can hide security and deployment mistakes. We wanted a fast, acc
 
 ## What it does
 
-Paste a public GitHub repository URL or run the built-in fixture. IceGuard reads selected source files, flags four narrow patterns, shows the file and line for each result, and reports scan coverage. For a hardcoded server port, it generates a unified diff using the PORT environment variable and re-runs the rule on the modified content. Visitors running Ollama on their own device may request an optional AI explanation of one selected finding. That explanation is explicitly unverified.
+Paste a public GitHub repository URL or run the built-in fixture. IceGuard reads selected source files, flags four narrow patterns, shows the file and line for each result, and reports scan coverage. For a hardcoded server port, it generates a unified diff using the PORT environment variable and re-runs the rule on the modified content.
 
 ## How we built it
 
@@ -22,7 +22,7 @@ The app is one Cloudflare Worker serving a browser interface and a small API. Th
 
 ## Challenges
 
-We chose limited, inspectable checks rather than making broad security claims. GitHub's unauthenticated API rate limit can affect arbitrary repository scans, so a labeled built-in fixture is available for a reliable demo. Local AI is optional because a model on one computer cannot serve every public visitor.
+We chose limited, inspectable checks rather than making broad security claims. GitHub's unauthenticated API rate limit can affect arbitrary repository scans, so a labeled built-in fixture is available for a reliable demo. An experimental local AI option is hidden by default because a model on one computer cannot serve every public visitor.
 
 ## What we learned
 
@@ -34,7 +34,7 @@ Add tested dependency advisory checks, stronger parsing for SQL data flow, a hos
 
 ## Built with
 
-JavaScript, Cloudflare Workers, GitHub REST API, Sites hosting, optional local Ollama API, and AI-assisted coding. Sites Worker ESM starter was used as the initial scaffold. Significant AI-assisted contributions are disclosed here.
+JavaScript, Cloudflare Workers, GitHub REST API, Sites hosting, and AI-assisted coding. Sites Worker ESM starter was used as the initial scaffold. Significant AI-assisted contributions are disclosed here. Local Ollama integration is experimental and should only be listed if it is demonstrated working.
 
 ## Links to fill before submission
 
@@ -54,7 +54,7 @@ Best Deployed / Shipped App and Best Design & UX are appropriate once the live a
 | 0:18–0:50 | Findings and coverage | "The demo fixture is labeled. Here are three issues with file, line, severity, confidence, and source evidence." |
 | 0:50–1:20 | Select hardcoded port, generate patch | "This rule supports a constrained fix. We generate a unified diff and re-scan the modified file. The test suite has not been run." |
 | 1:20–1:55 | Scan one real public JS repository | "For public repositories, the worker fetches bounded source files directly from GitHub. Coverage shows how much was included." |
-| 1:55–2:15 | Optional Ollama, if available | "A visitor can ask their own local model to review a selected finding. The answer is clearly marked as unverified." |
+| 1:55–2:15 | Show scan limits and a second finding | "The coverage count tells you exactly which files were checked. Each finding links back to concrete source evidence." |
 | 2:15–2:30 | README, architecture | "The checks are narrow by design. The code and limits are documented in the public repository." |
 
-Record the real GitHub scan and local AI segment only after they have both been tested on the device used for the recording. Keep the video public and under three minutes.
+Record the real GitHub scan only after it has been tested on the device used for the recording. Keep the video public and under three minutes.
