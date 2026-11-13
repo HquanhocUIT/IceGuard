@@ -1,0 +1,11 @@
+{
+  "name": "shipguard-icehacks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve-local.mjs",
+    "validate": "node scripts/validate-artifact.mjs",
+    "test": "node --test"
+  }
+}
