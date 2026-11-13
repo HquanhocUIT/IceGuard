@@ -60,7 +60,7 @@
         <aside class="panel"><div class="head">Execution log <span id="elapsed" class="muted">Ready</span></div><div id="events" class="events"><div class="event">Waiting for a scan.</div></div></aside>
         <div class="content">
           <div class="metrics">
-            <div class="metric"><span>Readiness</span><strong id="score">—</strong><small>Indicative score only</small></div>
+            <div class="metric"><span>Readiness</span><strong id="score">—</strong><small id="score-note">Indicative score only</small></div>
             <div class="metric"><span>Findings</span><strong id="count">—</strong><small id="severity">Prioritized issues</small></div>
             <div class="metric"><span>Coverage</span><strong id="coverage">—</strong><small id="files">Eligible files scanned</small></div>
           </div>
@@ -92,7 +92,7 @@
     }
     function render(data) {
       result=data; el('elapsed').textContent=Math.round(performance.now()-start)+' ms';
-      el('score').textContent=data.summary.score+'/100'; el('count').textContent=data.findings.length; el('coverage').textContent=data.limited?'Partial':data.summary.coverage+'%';
+      el('score').textContent=data.limited?'—':data.summary.score+'/100'; el('score-note').textContent=data.limited?'Unavailable for partial scans':'Indicative score only'; el('count').textContent=data.findings.length; el('coverage').textContent=data.limited?'Partial':data.summary.coverage+'%';
       el('severity').textContent=data.summary.counts.high+' high · '+data.summary.counts.medium+' medium · '+data.summary.counts.low+' low';
       el('files').textContent=data.limited?data.summary.filesScanned+' common files; total unknown':data.summary.filesScanned+' of '+data.summary.eligible+' eligible files'; el('repo').textContent=data.repo;
       el('findings').className=''; el('findings').replaceChildren();

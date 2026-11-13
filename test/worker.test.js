@@ -89,6 +89,7 @@ test("API quota fallback scans common files and reports unknown coverage", async
     const data = await response.json();
     assert.equal(data.limited, true);
     assert.equal(data.summary.coverage, null);
+    assert.equal(data.summary.score, null);
     assert.equal(data.summary.eligible, null);
     assert.equal(data.summary.filesScanned, 1);
     assert.equal(data.findings[0].title, "Hardcoded server port");

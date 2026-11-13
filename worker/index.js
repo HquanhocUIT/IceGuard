@@ -125,7 +125,7 @@ export function patchPort(files, finding) {
 function summarize(files, findings, eligible) {
   const counts = { high: 0, medium: 0, low: 0 };
   for (const item of findings) counts[item.severity]++;
-  return { filesScanned: files.length, eligible, coverage: eligible === null ? null : Math.round(100 * files.length / eligible), counts, score: Math.max(0, 100 - counts.high * 20 - counts.medium * 10 - counts.low * 4) };
+  return { filesScanned: files.length, eligible, coverage: eligible === null ? null : Math.round(100 * files.length / eligible), counts, score: eligible === null ? null : Math.max(0, 100 - counts.high * 20 - counts.medium * 10 - counts.low * 4) };
 }
 export default {
   async fetch(request) {

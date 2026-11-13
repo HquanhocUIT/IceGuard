@@ -46,7 +46,7 @@ The experimental interface has a local Ollama review button. Enter a model name 
 ## Limits and safety
 
 - Public GitHub repositories only; no arbitrary URL fetching, login, repository execution, or exploit testing.
-- GitHub unauthenticated API limits apply. A limited common-file fallback and built-in fixture keep a useful demo available when GitHub throttles requests. Fallback results never claim complete repository coverage.
+- GitHub unauthenticated API limits apply. A limited common-file fallback and built-in fixture keep a useful demo available when GitHub throttles requests. Fallback results have unknown coverage and no readiness score.
 - Scans are sampled by file priority, capped at 45 files, 32 KB per file, and 300 KB total.
 - Findings are heuristics and may contain false positives or miss real vulnerabilities.
 - Use synthetic credentials in demos. Do not paste real secrets into issues, screenshots, or videos.
