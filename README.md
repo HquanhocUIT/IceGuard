@@ -2,6 +2,8 @@
 
 **Audit before you ship.** IceGuard scans a public JavaScript or TypeScript GitHub repository, shows evidence-backed findings, and provides a rule-verified patch for a supported deployment issue. Built from scratch for IceHacks 2026.
 
+Live app: https://iceguard-icehacks-2026.phudeeptry0501.chatgpt.site
+
 ## What works now
 
 - Enter a public GitHub repository URL, or open the labeled built-in demo fixture.

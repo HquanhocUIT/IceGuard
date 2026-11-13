@@ -38,7 +38,7 @@ JavaScript, Cloudflare Workers, GitHub REST API, Sites hosting, and AI-assisted 
 
 ## Links to fill before submission
 
-- Public GitHub repository: [add URL]
+- Public GitHub repository: https://github.com/HquanhocUIT/IceGuard
 - Live app: https://iceguard-icehacks-2026.phudeeptry0501.chatgpt.site
 - Public demo video under three minutes: [add URL]
 
