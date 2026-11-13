@@ -21,9 +21,9 @@
     .primary{background:#70e3c4;border:0;color:#0a211d;font-weight:800;border-radius:9px;padding:12px 20px}.primary:hover{background:#9af2dc}.primary:disabled{opacity:.5}
     .secondary{background:#193042;border:1px solid #385363;border-radius:9px;color:#d1e8ed;padding:10px 14px}
     .sub{margin-top:15px;color:#8ea5b3;font-size:13px}.sub button{border:0;background:none;color:#70e3c4;text-decoration:underline;text-underline-offset:4px}
-    .case-label{margin:22px 0 9px;color:#8ea5b3;font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:800}.cases{display:flex;flex-wrap:wrap;gap:9px}.case{background:#102633;border:1px solid #345261;border-radius:10px;color:#d4e8ec;padding:10px 13px;text-align:left}.case:hover{border-color:#70e3c4;background:#173846}.case strong{display:block;font-size:13px}.case span{display:block;margin-top:3px;color:#91aeb9;font-size:11px}.case:disabled{opacity:.5}
+    .case-label{margin:22px 0 9px;color:#8ea5b3;font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:800}.cases{display:flex;flex-wrap:wrap;gap:9px}.case{background:#102633;border:1px solid #345261;border-radius:10px;color:#d4e8ec;padding:10px 13px;text-align:left}.case:hover,.case[aria-pressed="true"]{border-color:#70e3c4;background:#173846}.case strong{display:block;font-size:13px}.case span{display:block;margin-top:3px;color:#91aeb9;font-size:11px}.case:disabled{opacity:.5}
     .note{color:#738b9b;font-size:12px;margin-top:12px}.status{color:#ffbd94;min-height:23px;margin-top:10px;font-size:13px}
-    .layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin:20px 0 80px}
+    .layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin:20px 0 80px;scroll-margin-top:18px}
     .panel,.metric{background:#111f2c;border:1px solid #2a4050;border-radius:14px;overflow:hidden}
     .head{padding:16px 18px;border-bottom:1px solid #263c4d;display:flex;justify-content:space-between;align-items:center;font-weight:700}
     .muted{color:#8fa7b6;font-size:12px;font-weight:400}.events{padding:8px 17px;min-height:160px}
@@ -54,11 +54,11 @@
         <p>Paste a public JavaScript or TypeScript repository. Inspect evidence-backed findings, then preview a verified fix for supported issues.</p>
         <form id="form" class="scanbar"><input id="url" type="url" placeholder="https://github.com/owner/repository" aria-label="Public GitHub repository URL"><button id="scan" class="primary">Scan repository ↗</button></form>
         <div class="case-label">Try the same scanner on three test cases</div>
-        <div class="cases"><button class="case" data-case="security" type="button"><strong>Security risks</strong><span>Secret · SQL · port</span></button><button class="case" data-case="deploy" type="button"><strong>Deployment drift</strong><span>Dockerfile vs server</span></button><button class="case" data-case="clean" type="button"><strong>Clean baseline</strong><span>Check a zero-finding case</span></button></div>
+        <div class="cases"><button class="case" data-case="security" aria-pressed="false" type="button"><strong>Security risks</strong><span>Secret · SQL · port</span></button><button class="case" data-case="deploy" aria-pressed="false" type="button"><strong>Deployment drift</strong><span>Dockerfile vs server</span></button><button class="case" data-case="clean" aria-pressed="false" type="button"><strong>Clean baseline</strong><span>Check a zero-finding case</span></button></div>
         <div class="note">Read-only · Public GitHub repos · Up to 45 source files · No code execution</div>
         <div id="status" class="status" role="status" aria-live="polite"></div>
       </section>
-      <section class="layout">
+      <section class="layout" id="results">
         <aside class="panel"><div class="head">Execution log <span id="elapsed" class="muted">Ready</span></div><div id="events" class="events"><div class="event">Waiting for a scan.</div></div></aside>
         <div class="content">
           <div class="metrics">
@@ -93,7 +93,7 @@
       if (issue.patchable) el('patch').addEventListener('click', generatePatch);
     }
     function render(data) {
-      result=data; el('elapsed').textContent=Math.round(performance.now()-start)+' ms';
+      result=data; selected=null; el('selected').textContent='Select a finding'; el('elapsed').textContent=Math.round(performance.now()-start)+' ms';
       el('score').textContent=data.limited?'—':data.summary.score+'/100'; el('score-note').textContent=data.limited?'Unavailable for partial scans':'Indicative score only'; el('count').textContent=data.findings.length; el('coverage').textContent=data.limited?'Partial':data.summary.coverage+'%';
       el('severity').textContent=data.summary.counts.high+' high · '+data.summary.counts.medium+' medium · '+data.summary.counts.low+' low';
       el('files').textContent=data.limited?data.summary.filesScanned+' common files; total unknown':data.summary.filesScanned+' of '+data.summary.eligible+' eligible files'; el('repo').textContent=data.repo;
@@ -119,7 +119,7 @@
       } catch(error) { showError(error.message); button.disabled=false; button.textContent='Retry patch'; }
     }
     async function run(source,repoUrl,caseId='security') {
-      start=performance.now(); showError(''); el('scan').disabled=true; document.querySelectorAll('.case').forEach((button)=>button.disabled=true); el('events').replaceChildren();
+      start=performance.now(); showError(''); el('scan').disabled=true; document.querySelectorAll('.case').forEach((button)=>{button.disabled=true;button.setAttribute('aria-pressed',String(source==='sample'&&button.dataset.case===caseId));}); el('events').replaceChildren();
       log('Start',source==='sample'?'Loading '+caseId+' test case.':'Fetching public GitHub repository.');
       try {
         const response=await fetch('/api/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({source,repoUrl,caseId})});
@@ -129,6 +129,7 @@
         if(data.limited)log('Limit','GitHub API quota reached. Scanned common file paths; repository coverage is unknown.');
         log('Done',data.findings.length+' findings; '+(data.limited?'partial scan.':data.summary.coverage+'% coverage.'));
         render(data);
+        el('results').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
       } catch(error) { showError(error.message); log('Error',error.message); el('elapsed').textContent=Math.round(performance.now()-start)+' ms'; }
       finally { el('scan').disabled=false; document.querySelectorAll('.case').forEach((button)=>button.disabled=false); }
     }
