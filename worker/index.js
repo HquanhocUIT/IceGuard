@@ -97,7 +97,7 @@ export function scanFiles(files) {
         results.push(issue("Security", "high", "high", file.path, number, "Committed environment value", "A populated .env file is present. Rotate any real credential and remove it from Git history.", line.replace(/=.*/, "=[REDACTED]")));
       const secret = /\b(api[_-]?key|secret|password|access[_-]?token)\b\s*[:=]\s*["']([^"']{10,})["']/i.exec(line);
       if (!isEnv && secret && !/demo|example|placeholder|changeme/i.test(secret[2]))
-        results.push(issue("Security", "high", "medium", file.path, number, "Possible hardcoded credential", "Review this credential-like value. Rotate it if real, then use an environment variable.", line.replace(secret[2], "[REDACTED]")));
+        results.push(issue("Security", "high", "medium", file.path, number, "Possible hardcoded credential", "Review this credential-like value. Rotate it if real, then use an environment variable.", line.replaceAll(secret[2], "[REDACTED]").replace(/\b(api[_-]?key|secret|password|access[_-]?token)\b(\s*[:=]\s*["'])([^"']{10,})(["'])/gi, (_match, name, separator, _value, quote) => name + separator + "[REDACTED]" + quote)));
       if (/\.query\s*\(\s*\x60/.test(line) && /\$\{[^}]+\}/.test(line))
         results.push(issue("Security", "medium", "medium", file.path, number, "Interpolated SQL query", "A value is inserted into SQL. Check whether it comes from user input; parameterized queries are safer.", line.trim()));
       if (/\.listen\s*\(\s*\d{2,5}\s*\)/.test(line))

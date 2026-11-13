@@ -40,6 +40,15 @@ test("clean source has no findings", () => {
   assert.deepEqual(scanFiles([{ path: "server.js", content: "app.listen(process.env.PORT || 3000);" }]), []);
 });
 
+test("credential evidence redacts every credential-like value on a line", () => {
+  const value = "synthetic_fixture_value_123456";
+  const findings = scanFiles([{ path: "config.js", content: `const note = "${value}"; const api_key = "${value}"; const password = "another_private_value";` }]);
+  assert.equal(findings.length, 1);
+  assert.ok(!findings[0].evidence.includes(value));
+  assert.ok(!findings[0].evidence.includes("another_private_value"));
+  assert.match(findings[0].evidence, /api_key = "\[REDACTED\]"/);
+});
+
 test("GitHub URL validation rejects other hosts without fetching", async () => {
   const response = await post("/api/scan", { source: "github", repoUrl: "https://example.com/owner/repo" });
   assert.equal(response.status, 400);
