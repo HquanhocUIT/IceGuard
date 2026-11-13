@@ -33,6 +33,24 @@ async function githubGet(path) {
   if (!response.ok) throw new Error("GitHub error: HTTP " + response.status);
   return response.json();
 }
+async function readCommonFiles(owner, repo) {
+  const paths = [".env", "index.js", "index.ts", "server.js", "server.ts", "app.js", "app.ts", "src/index.js", "src/index.ts", "src/server.js", "src/server.ts", "src/app.js", "src/app.ts", "src/db.js", "src/db.ts", "src/routes.js", "src/routes.ts", "api/index.js", "api/index.ts", "lib/db.js", "lib/db.ts"];
+  const files = [];
+  for (let offset = 0; offset < paths.length; offset += 6) {
+    const batch = await Promise.all(paths.slice(offset, offset + 6).map(async (path) => {
+      try {
+        const response = await fetch("https://raw.githubusercontent.com/" + encodeURIComponent(owner) + "/" + encodeURIComponent(repo) + "/HEAD/" + path);
+        if (!response.ok || Number(response.headers.get("content-length") || 0) > 32000) return null;
+        const content = await response.text();
+        if (new TextEncoder().encode(content).length > 32000) return null;
+        return { path, content };
+      } catch { return null; }
+    }));
+    files.push(...batch.filter(Boolean));
+  }
+  if (!files.length) throw new Error("GitHub API rate limit reached and no common source files were found. Retry later or use the demo fixture.");
+  return { files, repo: owner + "/" + repo, eligible: null, limited: true };
+}
 function decodeUtf8(base64) {
   const binary = atob(base64.replace(/\s/g, ""));
   return new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
@@ -40,9 +58,15 @@ function decodeUtf8(base64) {
 async function readRepo(input) {
   const { owner, repo } = parseRepo(input);
   const base = "/repos/" + encodeURIComponent(owner) + "/" + encodeURIComponent(repo);
-  const metadata = await githubGet(base);
-  if (metadata.private) throw new Error("Only public repositories are supported.");
-  const tree = await githubGet(base + "/git/trees/" + encodeURIComponent(metadata.default_branch) + "?recursive=1");
+  let metadata, tree;
+  try {
+    metadata = await githubGet(base);
+    if (metadata.private) throw new Error("Only public repositories are supported.");
+    tree = await githubGet(base + "/git/trees/" + encodeURIComponent(metadata.default_branch) + "?recursive=1");
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("GitHub rate limit reached")) return readCommonFiles(owner, repo);
+    throw error;
+  }
   if (tree.truncated) throw new Error("Repository tree is too large for this preview scanner.");
   const eligible = tree.tree.filter((item) => item.type === "blob" && item.size <= 32000 && supported(item.path));
   eligible.sort((a, b) => priority(a.path) - priority(b.path) || a.path.localeCompare(b.path));
@@ -58,7 +82,7 @@ async function readRepo(input) {
     files.push(...batch.filter(Boolean));
   }
   if (!files.length) throw new Error("GitHub files could not be read.");
-  return { files, repo: owner + "/" + repo, eligible: eligible.length };
+  return { files, repo: owner + "/" + repo, eligible: eligible.length, limited: false };
 }
 function issue(category, severity, confidence, file, line, title, explanation, evidence, patchable = false) {
   return { category, severity, confidence, file, line, title, explanation, evidence, patchable };
@@ -101,7 +125,7 @@ export function patchPort(files, finding) {
 function summarize(files, findings, eligible) {
   const counts = { high: 0, medium: 0, low: 0 };
   for (const item of findings) counts[item.severity]++;
-  return { filesScanned: files.length, eligible, coverage: Math.round(100 * files.length / eligible), counts, score: Math.max(0, 100 - counts.high * 20 - counts.medium * 10 - counts.low * 4) };
+  return { filesScanned: files.length, eligible, coverage: eligible === null ? null : Math.round(100 * files.length / eligible), counts, score: Math.max(0, 100 - counts.high * 20 - counts.medium * 10 - counts.low * 4) };
 }
 export default {
   async fetch(request) {
@@ -111,9 +135,9 @@ export default {
       try {
         if (Number(request.headers.get("content-length") || 0) > 10000) return json({ error: "Request too large." }, 413);
         const body = await request.json();
-        const repo = body.source === "sample" ? { files: demoFiles, repo: "built-in/demo-fixture", eligible: demoFiles.length } : await readRepo(body.repoUrl);
+        const repo = body.source === "sample" ? { files: demoFiles, repo: "built-in/demo-fixture", eligible: demoFiles.length, limited: false } : await readRepo(body.repoUrl);
         const findings = scanFiles(repo.files);
-        if (path === "/api/scan") return json({ repo: repo.repo, source: body.source, repoUrl: body.repoUrl || "", findings, summary: summarize(repo.files, findings, repo.eligible) });
+        if (path === "/api/scan") return json({ repo: repo.repo, source: body.source, repoUrl: body.repoUrl || "", findings, limited: repo.limited, summary: summarize(repo.files, findings, repo.eligible) });
         const finding = findings.find((item) => item.file === body.issue?.file && item.line === body.issue?.line && item.title === body.issue?.title);
         return json(patchPort(repo.files, finding));
       } catch (error) { return json({ error: error instanceof Error ? error.message : "Request failed." }, 400); }

@@ -74,3 +74,23 @@ test("public GitHub repository is fetched through the restricted API path", asyn
     assert.ok(requested.every((url) => url.startsWith("https://api.github.com/repos/demo/repo")));
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test("API quota fallback scans common files and reports unknown coverage", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (url.startsWith("https://api.github.com/")) return new Response("rate limited", { status: 403 });
+    if (url === "https://raw.githubusercontent.com/demo/repo/HEAD/index.js") return new Response("app.listen(4000);\n");
+    if (url.startsWith("https://raw.githubusercontent.com/demo/repo/HEAD/")) return new Response("not found", { status: 404 });
+    throw new Error("Unexpected URL: " + url);
+  };
+  try {
+    const response = await post("/api/scan", { source: "github", repoUrl: "https://github.com/demo/repo" });
+    assert.equal(response.status, 200);
+    const data = await response.json();
+    assert.equal(data.limited, true);
+    assert.equal(data.summary.coverage, null);
+    assert.equal(data.summary.eligible, null);
+    assert.equal(data.summary.filesScanned, 1);
+    assert.equal(data.findings[0].title, "Hardcoded server port");
+  } finally { globalThis.fetch = originalFetch; }
+});

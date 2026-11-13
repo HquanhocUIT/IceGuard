@@ -7,7 +7,7 @@
 - Enter a public GitHub repository URL, or open the labeled built-in demo fixture.
 - Scan up to 45 selected source files, with per-file and total byte limits.
 - Flag possible hardcoded credentials, committed environment values, interpolated SQL queries, and hardcoded server ports.
-- Show file and line evidence, severity, confidence, category, scan coverage, and an indicative score.
+- Show file and line evidence, severity, confidence, category, scan coverage when known, and an indicative score.
 - Rewrite a hardcoded server port to use the PORT environment variable, then re-run the detection rule on the patched file.
 - Copy a unified diff patch. No repository write permission is requested.
 
@@ -16,7 +16,7 @@ The checks are deliberately narrow. A possible SQL injection is a **review findi
 ## Architecture
 
 1. A single Cloudflare Worker serves the UI and API.
-2. The API validates GitHub repository URLs, reads public repository metadata, the Git tree, and selected blobs through the GitHub API.
+2. The API validates GitHub repository URLs, reads public repository metadata, the Git tree, and selected blobs through the GitHub API. If its anonymous quota is exhausted, it reads a short list of common paths from GitHub's public raw-file service and marks coverage as unknown.
 3. Deterministic rules inspect lines and return evidence with file path and line number. Credential-like values are redacted in responses.
 4. A constrained patcher handles the server-port rule. It re-scans the patched content before returning the preview.
 
@@ -46,7 +46,7 @@ The experimental interface has a local Ollama review button. Enter a model name 
 ## Limits and safety
 
 - Public GitHub repositories only; no arbitrary URL fetching, login, repository execution, or exploit testing.
-- GitHub unauthenticated API limits apply. A built-in fixture keeps the demo available when GitHub throttles requests.
+- GitHub unauthenticated API limits apply. A limited common-file fallback and built-in fixture keep a useful demo available when GitHub throttles requests. Fallback results never claim complete repository coverage.
 - Scans are sampled by file priority, capped at 45 files, 32 KB per file, and 300 KB total.
 - Findings are heuristics and may contain false positives or miss real vulnerabilities.
 - Use synthetic credentials in demos. Do not paste real secrets into issues, screenshots, or videos.

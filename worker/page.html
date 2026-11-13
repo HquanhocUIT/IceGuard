@@ -92,9 +92,9 @@
     }
     function render(data) {
       result=data; el('elapsed').textContent=Math.round(performance.now()-start)+' ms';
-      el('score').textContent=data.summary.score+'/100'; el('count').textContent=data.findings.length; el('coverage').textContent=data.summary.coverage+'%';
+      el('score').textContent=data.summary.score+'/100'; el('count').textContent=data.findings.length; el('coverage').textContent=data.limited?'Partial':data.summary.coverage+'%';
       el('severity').textContent=data.summary.counts.high+' high · '+data.summary.counts.medium+' medium · '+data.summary.counts.low+' low';
-      el('files').textContent=data.summary.filesScanned+' of '+data.summary.eligible+' eligible files'; el('repo').textContent=data.repo;
+      el('files').textContent=data.limited?data.summary.filesScanned+' common files; total unknown':data.summary.filesScanned+' of '+data.summary.eligible+' eligible files'; el('repo').textContent=data.repo;
       el('findings').className=''; el('findings').replaceChildren();
       if (!data.findings.length) { el('findings').innerHTML='<div class="empty ok">No findings in scanned files. This does not guarantee security.</div>'; el('details').textContent='No findings to inspect.'; return; }
       for (const issue of data.findings) {
@@ -124,7 +124,8 @@
         const data=await response.json(); if(!response.ok)throw new Error(data.error||'Scan failed');
         log('Ingest','Read '+data.summary.filesScanned+' supported files.');
         log('Rules','Checked source patterns and attached evidence.');
-        log('Done',data.findings.length+' findings; '+data.summary.coverage+'% coverage.');
+        if(data.limited)log('Limit','GitHub API quota reached. Scanned common file paths; repository coverage is unknown.');
+        log('Done',data.findings.length+' findings; '+(data.limited?'partial scan.':data.summary.coverage+'% coverage.'));
         render(data);
       } catch(error) { showError(error.message); log('Error',error.message); el('elapsed').textContent=Math.round(performance.now()-start)+' ms'; }
       finally { el('scan').disabled=false; el('demo').disabled=false; }

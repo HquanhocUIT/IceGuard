@@ -18,11 +18,11 @@ Paste a public GitHub repository URL or run the built-in fixture. IceGuard reads
 
 ## How we built it
 
-The app is one Cloudflare Worker serving a browser interface and a small API. The API allows only public GitHub repository URLs and reads repository metadata, a file tree, and bounded source blobs from the GitHub API. Deterministic rules produce findings. The patcher applies one constrained rewrite and verifies it by re-scanning. The interface uses plain HTML, CSS, and JavaScript, with no client framework. A build script embeds the page in the Worker.
+The app is one Cloudflare Worker serving a browser interface and a small API. The API allows only public GitHub repository URLs and reads repository metadata, a file tree, and bounded source blobs from the GitHub API. When the anonymous quota is exhausted, a limited fallback reads common public source paths and labels coverage unknown. Deterministic rules produce findings. The patcher applies one constrained rewrite and verifies it by re-scanning. The interface uses plain HTML, CSS, and JavaScript, with no client framework. A build script embeds the page in the Worker.
 
 ## Challenges
 
-We chose limited, inspectable checks rather than making broad security claims. GitHub's unauthenticated API rate limit can affect arbitrary repository scans, so a labeled built-in fixture is available for a reliable demo. An experimental local AI option is hidden by default because a model on one computer cannot serve every public visitor.
+We chose limited, inspectable checks rather than making broad security claims. GitHub's unauthenticated API rate limit affected the public deployment, so we added a labeled common-file fallback and a built-in fixture. An experimental local AI option is hidden by default because a model on one computer cannot serve every public visitor.
 
 ## What we learned
 
@@ -39,7 +39,7 @@ JavaScript, Cloudflare Workers, GitHub REST API, Sites hosting, and AI-assisted 
 ## Links to fill before submission
 
 - Public GitHub repository: [add URL]
-- Live app: [add URL]
+- Live app: https://iceguard-icehacks-2026.phudeeptry0501.chatgpt.site
 - Public demo video under three minutes: [add URL]
 
 ## Tracks
@@ -53,7 +53,7 @@ Best Deployed / Shipped App and Best Design & UX are appropriate once the live a
 | 0:00–0:18 | App home, click built-in demo | "Fast prototypes can hide mistakes. IceGuard gives a quick, inspectable first pass." |
 | 0:18–0:50 | Findings and coverage | "The demo fixture is labeled. Here are three issues with file, line, severity, confidence, and source evidence." |
 | 0:50–1:20 | Select hardcoded port, generate patch | "This rule supports a constrained fix. We generate a unified diff and re-scan the modified file. The test suite has not been run." |
-| 1:20–1:55 | Scan one real public JS repository | "For public repositories, the worker fetches bounded source files directly from GitHub. Coverage shows how much was included." |
+| 1:20–1:55 | Scan one real public JS repository | "For public repositories, the worker reads bounded source files from GitHub. If its API quota is exhausted, a limited fallback scans common paths and marks total coverage unknown." |
 | 1:55–2:15 | Show scan limits and a second finding | "The coverage count tells you exactly which files were checked. Each finding links back to concrete source evidence." |
 | 2:15–2:30 | README, architecture | "The checks are narrow by design. The code and limits are documented in the public repository." |
 
