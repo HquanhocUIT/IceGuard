@@ -27,7 +27,7 @@ function priority(path) {
   return 3;
 }
 async function githubGet(path) {
-  const response = await fetch("https://api.github.com" + path, { headers: { accept: "application/vnd.github+json", "user-agent": "ShipGuard-IceHacks-2026", "x-github-api-version": "2022-11-28" } });
+  const response = await fetch("https://api.github.com" + path, { headers: { accept: "application/vnd.github+json", "user-agent": "IceGuard-IceHacks-2026", "x-github-api-version": "2022-11-28" } });
   if (response.status === 404) throw new Error("Public repository or file not found.");
   if (response.status === 403 || response.status === 429) throw new Error("GitHub rate limit reached. Retry later or use the demo fixture.");
   if (!response.ok) throw new Error("GitHub error: HTTP " + response.status);

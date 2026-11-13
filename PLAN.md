@@ -4,7 +4,7 @@ Official deadline: 15 November 2026 at 18:00 PST, which is 16 November at 09:00 
 
 ## Scope freeze
 
-ShipGuard supports a public JavaScript or TypeScript GitHub repository, four narrow checks, evidence and coverage display, one deterministic patch, and optional visitor-owned Ollama review. Do not claim full security coverage, AST analysis, autonomous agents, or automatic PR creation in the submission.
+IceGuard supports a public JavaScript or TypeScript GitHub repository, four narrow checks, evidence and coverage display, one deterministic patch, and optional visitor-owned Ollama review. Do not claim full security coverage, AST analysis, autonomous agents, or automatic PR creation in the submission.
 
 ## Milestones
 

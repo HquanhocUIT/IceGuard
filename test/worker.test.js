@@ -48,7 +48,7 @@ test("GitHub URL validation rejects other hosts without fetching", async () => {
 
 test("home page serves the application", async () => {
   const html = await readFile(new URL("../worker/page.html", import.meta.url), "utf8");
-  assert.match(html, /ShipGuard/);
+  assert.match(html, /IceGuard/);
   const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script);
   assert.doesNotThrow(() => new Script(script));

@@ -1,6 +1,6 @@
-# ShipGuard
+# IceGuard
 
-**Audit before you ship.** ShipGuard scans a public JavaScript or TypeScript GitHub repository, shows evidence-backed findings, and provides a rule-verified patch for a supported deployment issue. Built from scratch for IceHacks 2026.
+**Audit before you ship.** IceGuard scans a public JavaScript or TypeScript GitHub repository, shows evidence-backed findings, and provides a rule-verified patch for a supported deployment issue. Built from scratch for IceHacks 2026.
 
 ## What works now
 

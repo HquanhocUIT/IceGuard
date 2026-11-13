@@ -2,11 +2,11 @@
 
 ## Project title
 
-ShipGuard — Audit before you ship
+IceGuard — Audit before you ship
 
 ## One sentence
 
-ShipGuard turns a public JavaScript or TypeScript repository into a short, evidence-backed list of issues and a reviewable patch for supported deployment mistakes.
+IceGuard turns a public JavaScript or TypeScript repository into a short, evidence-backed list of issues and a reviewable patch for supported deployment mistakes.
 
 ## Inspiration
 
@@ -14,7 +14,7 @@ Fast prototypes can hide security and deployment mistakes. We wanted a fast, acc
 
 ## What it does
 
-Paste a public GitHub repository URL or run the built-in fixture. ShipGuard reads selected source files, flags four narrow patterns, shows the file and line for each result, and reports scan coverage. For a hardcoded server port, it generates a unified diff using the PORT environment variable and re-runs the rule on the modified content. Visitors running Ollama on their own device may request an optional AI explanation of one selected finding. That explanation is explicitly unverified.
+Paste a public GitHub repository URL or run the built-in fixture. IceGuard reads selected source files, flags four narrow patterns, shows the file and line for each result, and reports scan coverage. For a hardcoded server port, it generates a unified diff using the PORT environment variable and re-runs the rule on the modified content. Visitors running Ollama on their own device may request an optional AI explanation of one selected finding. That explanation is explicitly unverified.
 
 ## How we built it
 
@@ -50,7 +50,7 @@ Best Deployed / Shipped App and Best Design & UX are appropriate once the live a
 
 | Time | Screen | Narration |
 | --- | --- | --- |
-| 0:00–0:18 | App home, click built-in demo | "Fast prototypes can hide mistakes. ShipGuard gives a quick, inspectable first pass." |
+| 0:00–0:18 | App home, click built-in demo | "Fast prototypes can hide mistakes. IceGuard gives a quick, inspectable first pass." |
 | 0:18–0:50 | Findings and coverage | "The demo fixture is labeled. Here are three issues with file, line, severity, confidence, and source evidence." |
 | 0:50–1:20 | Select hardcoded port, generate patch | "This rule supports a constrained fix. We generate a unified diff and re-scan the modified file. The test suite has not been run." |
 | 1:20–1:55 | Scan one real public JS repository | "For public repositories, the worker fetches bounded source files directly from GitHub. Coverage shows how much was included." |

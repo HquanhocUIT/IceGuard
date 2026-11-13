@@ -23,4 +23,4 @@ const server = createServer(async (incoming, outgoing) => {
     outgoing.end(error instanceof Error ? error.message : "Server error");
   }
 });
-server.listen(port, "127.0.0.1", () => console.log("ShipGuard local preview: http://127.0.0.1:" + port));
+server.listen(port, "127.0.0.1", () => console.log("IceGuard local preview: http://127.0.0.1:" + port));
