@@ -4,13 +4,16 @@
 
 Live app: https://iceguard-icehacks-2026.phudeeptry0501.chatgpt.site
 
+Interactive cases: [security risks](https://iceguard-icehacks-2026.phudeeptry0501.chatgpt.site/?case=security), [deployment drift](https://iceguard-icehacks-2026.phudeeptry0501.chatgpt.site/?case=deploy), and [clean baseline](https://iceguard-icehacks-2026.phudeeptry0501.chatgpt.site/?case=clean). The exact expected results and edge cases are in [TEST_CASES.md](TEST_CASES.md).
+
 ## What works now
 
-- Enter a public GitHub repository URL, or open the labeled built-in demo fixture.
+- Enter a public GitHub repository URL, or run three labeled test cases: security risks, deployment drift, and a clean baseline.
 - Scan up to 45 selected source files, with per-file and total byte limits.
-- Flag possible hardcoded credentials, committed environment values, interpolated SQL queries, and hardcoded server ports.
+- Flag possible hardcoded credentials, committed environment values, interpolated SQL queries, hardcoded server ports, and a single Dockerfile/server port mismatch.
 - Show file and line evidence, severity, confidence, category, scan coverage when known, and an indicative score.
 - Rewrite a hardcoded server port to use the PORT environment variable, then re-run the detection rule on the patched file.
+- Withhold that auto-patch when Dockerfile and server ports disagree, because changing one file alone could leave a broken deployment.
 - Copy a unified diff patch. No repository write permission is requested.
 
 The checks are deliberately narrow. A possible SQL injection is a **review finding**, not a confirmed exploit. The score covers only selected files and is not a security certification. Patch verification means the original rule no longer matches; it does **not** mean the file passed its test suite.
@@ -19,8 +22,8 @@ The checks are deliberately narrow. A possible SQL injection is a **review findi
 
 1. A single Cloudflare Worker serves the UI and API.
 2. The API validates GitHub repository URLs, reads public repository metadata, the Git tree, and selected blobs through the GitHub API. If its anonymous quota is exhausted, it reads a short list of common paths from GitHub's public raw-file service and marks coverage as unknown.
-3. Deterministic rules inspect lines and return evidence with file path and line number. Credential-like values are redacted in responses.
-4. A constrained patcher handles the server-port rule. It re-scans the patched content before returning the preview.
+3. Deterministic rules inspect lines and compare one Dockerfile `EXPOSE` port with one fixed server listener. The port mismatch includes evidence from both files. Credential-like values are redacted in responses.
+4. A constrained patcher handles the server-port rule only when no Dockerfile conflict is found. It re-scans the patched content before returning the preview.
 
 The UI is stored in worker/page.html. scripts/build.mjs embeds it into dist/server/index.js for Sites deployment. This keeps the deployed Worker as one ES module without runtime dependencies.
 
@@ -37,7 +40,7 @@ Requires Node.js 22 or newer.
 
 Open http://127.0.0.1:8787 after starting the local server. Rebuild after editing the Worker or page.
 
-There are no npm dependencies. The tests cover the demo scan, patch verification, clean input, invalid hosts, and the API surface.
+There are no npm dependencies. The tests cover all three built-in cases, cross-file conflicts, safe refusal of ambiguous patches, clean and dynamic ports, credential redaction, invalid hosts, and the API surface.
 
 ## AI and third-party disclosure
 
@@ -51,6 +54,7 @@ The experimental interface has a local Ollama review button. Enter a model name 
 - GitHub unauthenticated API limits apply. A limited common-file fallback and built-in fixture keep a useful demo available when GitHub throttles requests. Fallback results have unknown coverage and no readiness score.
 - Scans are sampled by file priority, capped at 45 files, 32 KB per file, and 300 KB total.
 - Findings are heuristics and may contain false positives or miss real vulnerabilities.
+- Dockerfile `EXPOSE` documents a port; it does not prove runtime routing. Treat a mismatch as a review prompt, not proof of an outage.
 - Use synthetic credentials in demos. Do not paste real secrets into issues, screenshots, or videos.
 
 ## IceHacks submission checklist

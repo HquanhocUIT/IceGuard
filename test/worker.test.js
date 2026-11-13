@@ -12,7 +12,7 @@ test("demo scan yields prioritized evidence and redacts synthetic values", async
   const response = await post("/api/scan", { source: "sample" });
   assert.equal(response.status, 200);
   const data = await response.json();
-  assert.equal(data.repo, "built-in/demo-fixture");
+  assert.equal(data.repo, "built-in/security-case");
   assert.deepEqual(data.findings.map((issue) => issue.title), ["Committed environment value", "Interpolated SQL query", "Hardcoded server port"]);
   assert.equal(data.findings[0].evidence, "SAMPLE_API_KEY=[REDACTED]");
   assert.ok(!JSON.stringify(data).includes("synthetic_fixture_value_123456"));
@@ -28,6 +28,43 @@ test("port patch is produced and its rule is checked again", async () => {
   assert.equal(patch.verified, true);
   assert.match(patch.after, /process\.env\.PORT \|\| 3000/);
   assert.match(patch.diff, /@@ -3,1 \+3,1 @@/);
+});
+
+test("deployment case links conflicting Docker and server evidence", async () => {
+  const response = await post("/api/scan", { source: "sample", caseId: "deploy" });
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.deepEqual(data.findings.map((item) => item.title), ["Docker port contract mismatch", "Hardcoded server port"]);
+  assert.deepEqual(data.findings[0].related, { file: "Dockerfile", line: 4, evidence: "EXPOSE 8080" });
+  assert.match(data.findings[0].evidence, /listen\(3000\)/);
+  assert.equal(data.findings[1].patchable, false);
+  const patch = await post("/api/patch", { source: "sample", caseId: "deploy", issue: { ...data.findings[1], patchable: true } });
+  assert.equal(patch.status, 400);
+  assert.match((await patch.json()).error, /human-reviewed/);
+});
+
+test("clean baseline produces no findings", async () => {
+  const response = await post("/api/scan", { source: "sample", caseId: "clean" });
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.deepEqual(data.findings, []);
+  assert.equal(data.summary.coverage, 100);
+});
+
+test("port contract check skips matching, dynamic and ambiguous configurations", () => {
+  const docker = { path: "Dockerfile", content: "FROM node:22\nEXPOSE 8080\n" };
+  for (const content of ["app.listen(8080);", "app.listen(process.env.PORT || 3000);"]) {
+    const findings = scanFiles([docker, { path: "server.js", content }]);
+    assert.ok(!findings.some((item) => item.title === "Docker port contract mismatch"));
+  }
+  const findings = scanFiles([{ path: "Dockerfile", content: "EXPOSE 8080\nEXPOSE 8443\n" }, { path: "server.js", content: "app.listen(3000);" }]);
+  assert.ok(!findings.some((item) => item.title === "Docker port contract mismatch"));
+});
+
+test("unknown built-in test case is refused", async () => {
+  const response = await post("/api/scan", { source: "sample", caseId: "not-a-case" });
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /Unknown built-in/);
 });
 
 test("unsupported patch is refused", () => {

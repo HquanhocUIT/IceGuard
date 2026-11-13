@@ -1,9 +1,19 @@
 const page = "__PAGE__";
-const demoFiles = [
-  { path: "src/server.js", content: "import express from 'express';\nconst app = express();\napp.listen(3000);\n" },
-  { path: "src/users.js", content: "export async function getUser(db, id) {\n  return db.query(\x60SELECT * FROM users WHERE id = '\x24{id}'\x60);\n}\n" },
-  { path: ".env", content: "SAMPLE_API_KEY=synthetic_fixture_value_123456\n" }
-];
+const demoCases = {
+  security: [
+    { path: "src/server.js", content: "import express from 'express';\nconst app = express();\napp.listen(3000);\n" },
+    { path: "src/users.js", content: "export async function getUser(db, id) {\n  return db.query(\x60SELECT * FROM users WHERE id = '\x24{id}'\x60);\n}\n" },
+    { path: ".env", content: "SAMPLE_API_KEY=synthetic_fixture_value_123456\n" }
+  ],
+  deploy: [
+    { path: "server.js", content: "import express from 'express';\nconst app = express();\napp.listen(3000);\n" },
+    { path: "Dockerfile", content: "FROM node:22-alpine\nWORKDIR /app\nCOPY . .\nEXPOSE 8080\nCMD [\"node\", \"server.js\"]\n" }
+  ],
+  clean: [
+    { path: "server.js", content: "import express from 'express';\nconst app = express();\napp.listen(process.env.PORT || 8080);\n" },
+    { path: "Dockerfile", content: "FROM node:22-alpine\nWORKDIR /app\nCOPY . .\nEXPOSE 8080\nCMD [\"node\", \"server.js\"]\n" }
+  ]
+};
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
 function parseRepo(input) {
@@ -34,7 +44,7 @@ async function githubGet(path) {
   return response.json();
 }
 async function readCommonFiles(owner, repo) {
-  const paths = [".env", "index.js", "index.ts", "server.js", "server.ts", "app.js", "app.ts", "src/index.js", "src/index.ts", "src/server.js", "src/server.ts", "src/app.js", "src/app.ts", "src/db.js", "src/db.ts", "src/routes.js", "src/routes.ts", "api/index.js", "api/index.ts", "lib/db.js", "lib/db.ts"];
+  const paths = [".env", "Dockerfile", "index.js", "index.ts", "server.js", "server.ts", "app.js", "app.ts", "src/index.js", "src/index.ts", "src/server.js", "src/server.ts", "src/app.js", "src/app.ts", "src/db.js", "src/db.ts", "src/routes.js", "src/routes.ts", "api/index.js", "api/index.ts", "lib/db.js", "lib/db.ts"];
   const files = [];
   for (let offset = 0; offset < paths.length; offset += 6) {
     const batch = await Promise.all(paths.slice(offset, offset + 6).map(async (path) => {
@@ -84,8 +94,8 @@ async function readRepo(input) {
   if (!files.length) throw new Error("GitHub files could not be read.");
   return { files, repo: owner + "/" + repo, eligible: eligible.length, limited: false };
 }
-function issue(category, severity, confidence, file, line, title, explanation, evidence, patchable = false) {
-  return { category, severity, confidence, file, line, title, explanation, evidence, patchable };
+function issue(category, severity, confidence, file, line, title, explanation, evidence, patchable = false, related = null) {
+  return { category, severity, confidence, file, line, title, explanation, evidence, patchable, related };
 }
 export function scanFiles(files) {
   const results = [];
@@ -104,11 +114,34 @@ export function scanFiles(files) {
         results.push(issue("Deployability", "low", "high", file.path, number, "Hardcoded server port", "Many hosts supply a PORT environment variable. Support it while retaining a local default.", line.trim(), true));
     }
   }
+  const exposed = [];
+  const listeners = [];
+  for (const file of files) {
+    const lines = file.content.split(/\r?\n/);
+    for (const [index, line] of lines.entries()) {
+      if (/(^|\/)Dockerfile$/i.test(file.path)) {
+        const match = /^\s*EXPOSE\s+(\d{2,5})(?:\/tcp)?\s*(?:#.*)?$/i.exec(line);
+        if (match) exposed.push({ file: file.path, line: index + 1, port: Number(match[1]), evidence: line.trim() });
+      } else if (/\.(?:js|jsx|ts|tsx|mjs|cjs)$/i.test(file.path)) {
+        const match = /\.listen\s*\(\s*(\d{2,5})\s*\)/.exec(line);
+        if (match) listeners.push({ file: file.path, line: index + 1, port: Number(match[1]), evidence: line.trim() });
+      }
+    }
+  }
+  if (exposed.length === 1 && listeners.length === 1 && exposed[0].port !== listeners[0].port) {
+    const listener = listeners[0], docker = exposed[0];
+    const portFinding = results.find((item) => item.title === "Hardcoded server port" && item.file === listener.file && item.line === listener.line);
+    if (portFinding) {
+      portFinding.patchable = false;
+      portFinding.explanation += " Auto-patch is withheld until the Dockerfile and server port contract is reviewed together.";
+    }
+    results.push(issue("Deployability", "medium", "medium", listener.file, listener.line, "Docker port contract mismatch", "Dockerfile declares port " + docker.port + " while this file listens on " + listener.port + ". Check container routing and align the configured port before deploying.", listener.evidence, false, { file: docker.file, line: docker.line, evidence: docker.evidence }));
+  }
   const rank = { high: 0, medium: 1, low: 2 };
   return results.sort((a, b) => rank[a.severity] - rank[b.severity] || a.file.localeCompare(b.file) || a.line - b.line);
 }
 export function patchPort(files, finding) {
-  if (!finding || finding.title !== "Hardcoded server port") throw new Error("This finding needs a human-reviewed fix.");
+  if (!finding || finding.title !== "Hardcoded server port" || !finding.patchable) throw new Error("This finding needs a human-reviewed fix.");
   const file = files.find((item) => item.path === finding.file);
   if (!file) throw new Error("Source file unavailable.");
   const lines = file.content.split(/\r?\n/);
@@ -135,9 +168,11 @@ export default {
       try {
         if (Number(request.headers.get("content-length") || 0) > 10000) return json({ error: "Request too large." }, 413);
         const body = await request.json();
-        const repo = body.source === "sample" ? { files: demoFiles, repo: "built-in/demo-fixture", eligible: demoFiles.length, limited: false } : await readRepo(body.repoUrl);
+        const caseId = body.source === "sample" ? (body.caseId || "security") : null;
+        if (caseId && !Object.hasOwn(demoCases, caseId)) throw new Error("Unknown built-in test case.");
+        const repo = caseId ? { files: demoCases[caseId], repo: "built-in/" + caseId + "-case", eligible: demoCases[caseId].length, limited: false } : await readRepo(body.repoUrl);
         const findings = scanFiles(repo.files);
-        if (path === "/api/scan") return json({ repo: repo.repo, source: body.source, repoUrl: body.repoUrl || "", findings, limited: repo.limited, summary: summarize(repo.files, findings, repo.eligible) });
+        if (path === "/api/scan") return json({ repo: repo.repo, source: body.source, caseId, repoUrl: body.repoUrl || "", findings, limited: repo.limited, summary: summarize(repo.files, findings, repo.eligible) });
         const finding = findings.find((item) => item.file === body.issue?.file && item.line === body.issue?.line && item.title === body.issue?.title);
         return json(patchPort(repo.files, finding));
       } catch (error) { return json({ error: error instanceof Error ? error.message : "Request failed." }, 400); }

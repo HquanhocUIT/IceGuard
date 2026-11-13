@@ -21,6 +21,7 @@
     .primary{background:#70e3c4;border:0;color:#0a211d;font-weight:800;border-radius:9px;padding:12px 20px}.primary:hover{background:#9af2dc}.primary:disabled{opacity:.5}
     .secondary{background:#193042;border:1px solid #385363;border-radius:9px;color:#d1e8ed;padding:10px 14px}
     .sub{margin-top:15px;color:#8ea5b3;font-size:13px}.sub button{border:0;background:none;color:#70e3c4;text-decoration:underline;text-underline-offset:4px}
+    .case-label{margin:22px 0 9px;color:#8ea5b3;font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:800}.cases{display:flex;flex-wrap:wrap;gap:9px}.case{background:#102633;border:1px solid #345261;border-radius:10px;color:#d4e8ec;padding:10px 13px;text-align:left}.case:hover{border-color:#70e3c4;background:#173846}.case strong{display:block;font-size:13px}.case span{display:block;margin-top:3px;color:#91aeb9;font-size:11px}.case:disabled{opacity:.5}
     .note{color:#738b9b;font-size:12px;margin-top:12px}.status{color:#ffbd94;min-height:23px;margin-top:10px;font-size:13px}
     .layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;margin:20px 0 80px}
     .panel,.metric{background:#111f2c;border:1px solid #2a4050;border-radius:14px;overflow:hidden}
@@ -52,7 +53,8 @@
         <h1>Know what breaks <em>before users do.</em></h1>
         <p>Paste a public JavaScript or TypeScript repository. Inspect evidence-backed findings, then preview a verified fix for supported issues.</p>
         <form id="form" class="scanbar"><input id="url" type="url" placeholder="https://github.com/owner/repository" aria-label="Public GitHub repository URL"><button id="scan" class="primary">Scan repository ↗</button></form>
-        <div class="sub">Need a quick look? <button id="demo" type="button">Run built-in demo fixture</button></div>
+        <div class="case-label">Try the same scanner on three test cases</div>
+        <div class="cases"><button class="case" data-case="security" type="button"><strong>Security risks</strong><span>Secret · SQL · port</span></button><button class="case" data-case="deploy" type="button"><strong>Deployment drift</strong><span>Dockerfile vs server</span></button><button class="case" data-case="clean" type="button"><strong>Clean baseline</strong><span>Check a zero-finding case</span></button></div>
         <div class="note">Read-only · Public GitHub repos · Up to 45 source files · No code execution</div>
         <div id="status" class="status" role="status" aria-live="polite"></div>
       </section>
@@ -64,7 +66,7 @@
             <div class="metric"><span>Findings</span><strong id="count">—</strong><small id="severity">Prioritized issues</small></div>
             <div class="metric"><span>Coverage</span><strong id="coverage">—</strong><small id="files">Eligible files scanned</small></div>
           </div>
-          <div class="panel"><div class="head">Findings <span id="repo" class="muted">No scan yet</span></div><div id="findings" class="empty">Run the demo fixture or enter a public GitHub repository.</div></div>
+          <div class="panel"><div class="head">Findings <span id="repo" class="muted">No scan yet</span></div><div id="findings" class="empty">Try a test case or enter a public GitHub repository.</div></div>
           <div class="panel"><div class="head">Evidence &amp; patch <span id="selected" class="muted">Select a finding</span></div><div id="details" class="empty">Select a finding to inspect source evidence.</div></div>
           <div class="panel" id="local-ai" hidden><div class="head">Local AI review <span class="muted">Experimental · Ollama on your computer</span></div>
             <div class="details"><p>Ask a local model to explain the selected finding. Its answer is an unverified suggestion and never changes the repository. The evidence shown above is sent to localhost when you click.</p>
@@ -87,7 +89,7 @@
       selected=issue; document.querySelectorAll('.finding').forEach((x)=>x.classList.remove('active')); button.classList.add('active');
       el('selected').textContent=issue.category+' · '+issue.confidence+' confidence';
       el('details').className='details';
-      el('details').innerHTML='<h3>'+escapeHtml(issue.title)+'</h3><p>'+escapeHtml(issue.explanation)+'</p><div class="label">Evidence · '+escapeHtml(issue.file)+':'+issue.line+'</div><div class="code before">'+escapeHtml(issue.evidence)+'</div>'+(issue.patchable?'<div class="actions"><button id="patch" class="primary" type="button">Generate verified patch →</button></div>':'<p class="muted">This finding needs a human-reviewed fix.</p>');
+      el('details').innerHTML='<h3>'+escapeHtml(issue.title)+'</h3><p>'+escapeHtml(issue.explanation)+'</p><div class="label">Evidence · '+escapeHtml(issue.file)+':'+issue.line+'</div><div class="code before">'+escapeHtml(issue.evidence)+'</div>'+(issue.related?'<div class="label">Related evidence · '+escapeHtml(issue.related.file)+':'+issue.related.line+'</div><div class="code before">'+escapeHtml(issue.related.evidence)+'</div>':'')+(issue.patchable?'<div class="actions"><button id="patch" class="primary" type="button">Generate verified patch →</button></div>':'<p class="muted">This finding needs a human-reviewed fix.</p>');
       if (issue.patchable) el('patch').addEventListener('click', generatePatch);
     }
     function render(data) {
@@ -107,7 +109,7 @@
     async function generatePatch() {
       const button=el('patch'); button.disabled=true; button.textContent='Verifying…';
       try {
-        const response=await fetch('/api/patch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({source:result.source,repoUrl:result.repoUrl,issue:selected})});
+        const response=await fetch('/api/patch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({source:result.source,caseId:result.caseId,repoUrl:result.repoUrl,issue:selected})});
         const patch=await response.json(); if(!response.ok)throw new Error(patch.error||'Patch failed');
         const preview=document.createElement('div');
         preview.innerHTML='<div class="label">Before</div><div class="code before">'+escapeHtml(patch.before)+'</div><div class="label">After · rule re-scan passed</div><div class="code after">'+escapeHtml(patch.after)+'</div><p>'+escapeHtml(patch.note)+'</p><button id="copy" class="secondary" type="button">Copy unified diff</button>';
@@ -116,11 +118,11 @@
         log('Verify','Patched file re-scanned; original finding absent.');
       } catch(error) { showError(error.message); button.disabled=false; button.textContent='Retry patch'; }
     }
-    async function run(source,repoUrl) {
-      start=performance.now(); showError(''); el('scan').disabled=true; el('demo').disabled=true; el('events').replaceChildren();
-      log('Start',source==='sample'?'Loading built-in fixture.':'Fetching public GitHub repository.');
+    async function run(source,repoUrl,caseId='security') {
+      start=performance.now(); showError(''); el('scan').disabled=true; document.querySelectorAll('.case').forEach((button)=>button.disabled=true); el('events').replaceChildren();
+      log('Start',source==='sample'?'Loading '+caseId+' test case.':'Fetching public GitHub repository.');
       try {
-        const response=await fetch('/api/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({source,repoUrl})});
+        const response=await fetch('/api/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({source,repoUrl,caseId})});
         const data=await response.json(); if(!response.ok)throw new Error(data.error||'Scan failed');
         log('Ingest','Read '+data.summary.filesScanned+' supported files.');
         log('Rules','Checked source patterns and attached evidence.');
@@ -128,10 +130,11 @@
         log('Done',data.findings.length+' findings; '+(data.limited?'partial scan.':data.summary.coverage+'% coverage.'));
         render(data);
       } catch(error) { showError(error.message); log('Error',error.message); el('elapsed').textContent=Math.round(performance.now()-start)+' ms'; }
-      finally { el('scan').disabled=false; el('demo').disabled=false; }
+      finally { el('scan').disabled=false; document.querySelectorAll('.case').forEach((button)=>button.disabled=false); }
     }
     el('form').addEventListener('submit',(event)=>{event.preventDefault();run('github',el('url').value.trim());});
-    el('demo').addEventListener('click',()=>run('sample',''));
+    document.querySelectorAll('.case').forEach((button)=>button.addEventListener('click',()=>run('sample','',button.dataset.case)));
+    const initialCase=new URL(location.href).searchParams.get('case'); if(['security','deploy','clean'].includes(initialCase)) run('sample','',initialCase);
     if(new URL(location.href).searchParams.get('local-ai')==='1') el('local-ai').hidden=false;
     el('ai').addEventListener('click',async()=>{
       if(!selected){el('ai-output').textContent='Select a finding first.';return;}
